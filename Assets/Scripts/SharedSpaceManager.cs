@@ -144,5 +144,25 @@ namespace MyFirstARGame
                 this.arCamera.transform.SetPositionAndRotation(mainCamera.transform.position, mainCamera.transform.rotation);
             }
         }
+
+        private void OnGUI()
+        {
+            // Creating a simple GUI on the phone screen to we can debug the image target.
+            GUIStyle style = new()
+            {
+                fontSize = 30,
+            };
+
+            if (this.hasFoundOrigin)
+            {
+                style.normal.textColor = Color.green;
+                GUI.Label(new Rect(0, Screen.height / 2 + 200, 100, 100), "Found image target!", style);
+            }
+            else
+            {
+                style.normal.textColor = Color.red;
+                GUI.Label(new Rect(0, Screen.height / 2 + 200, 100, 100), "Looking for image target...", style);
+            }
+        }
     }
 }

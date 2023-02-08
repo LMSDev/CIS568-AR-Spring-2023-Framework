@@ -54,20 +54,31 @@ namespace MyFirstARGame
             if (uiButtons != null && (uiButtons.IsPointOverUI(touchPosition)))
                 return;
 
-            if (this.m_RaycastManager.Raycast(touchPosition, PlaceOnPlane.s_Hits, TrackableType.PlaneWithinPolygon))
+            // Raycast against layer "GroundPlane" using normal Raycasting for our artifical ground plane.
+            // For AR Foundation planes (if enabled), we use AR Raycasting.
+            var ray = Camera.main.ScreenPointToRay(touchPosition);
+            if (Physics.Raycast(ray, out RaycastHit hit, 1000, LayerMask.GetMask("GroundPlane")))
+            {
+                this.CreateOrUpdateObject(hit.point, hit.transform.rotation);
+            }
+            else if (this.m_RaycastManager.Raycast(touchPosition, PlaceOnPlane.s_Hits, TrackableType.PlaneWithinPolygon))
             {
                 // Raycast hits are sorted by distance, so the first one
                 // will be the closest hit.
                 var hitPose = PlaceOnPlane.s_Hits[0].pose;
+                this.CreateOrUpdateObject(hitPose.position, hitPose.rotation);
+            }
+        }
 
-                if (this.SpawnedObject == null)
-                {
-                    this.SpawnedObject = PhotonNetwork.Instantiate(this.placedPrefab.name, hitPose.position, hitPose.rotation);
-                }
-                else
-                {
-                    this.SpawnedObject.transform.position = hitPose.position;
-                }
+        private void CreateOrUpdateObject(Vector3 position, Quaternion rotation)
+        {
+            if (this.SpawnedObject == null)
+            {
+                this.SpawnedObject = PhotonNetwork.Instantiate(this.placedPrefab.name, position, rotation);
+            }
+            else
+            {
+                this.SpawnedObject.transform.position = position;
             }
         }
 
