@@ -33,6 +33,7 @@ namespace MyFirstARGame
         private bool hasFoundOrigin;
 
         private GameObject arCamera;
+        private bool syncNextTick;
 
         private void Awake()
         {
@@ -97,9 +98,17 @@ namespace MyFirstARGame
                         this.networkedTrackedImage.transform.localScale = new Vector3(trackedImg.size.x, 1f, trackedImg.size.y);
                         this.networkedTrackedImage.GetPhotonView().RPC("UpdateScale", RpcTarget.Others, this.networkedTrackedImage.transform.localScale);
 
+                        // The user pressed our image target. Sync up the coordinate systems and inform the user by rendering a green outline.
                         // We also could choose to update our coordinate systems here periodically if we are still tracking.
                         // This allows us to compensate for potential drifting due to sensor inaccuracies.
                         // if (someTimeElapsed) -> MatchReferenceCoordinateSystem()
+                        if (this.syncNextTick)
+                        {
+                            this.ShowOutline(true, false);
+                            this.MatchReferenceCoordinateSystem(trackedImg.gameObject);
+                            this.hasFoundOrigin = true;
+                            this.syncNextTick = false;
+                        }
                     }
                 }
                 else
@@ -113,11 +122,9 @@ namespace MyFirstARGame
 
         private void TrackedImageController_Pressed(TrackedImageController sender, Vector3 position)
         {
-            // The user pressed our image target. Sync up the coordinate systems and inform the user by rendering a green outline.
+            // The user pressed our image target. Sync up the coordinate systems the next time we get an update.
             Debug.Log("Image target pressed.");
-            this.ShowOutline(true, false);
-            this.MatchReferenceCoordinateSystem(sender.gameObject);
-            this.hasFoundOrigin = true;
+            this.syncNextTick = true;
         }
 
         private void MatchReferenceCoordinateSystem(GameObject trackedImage)
