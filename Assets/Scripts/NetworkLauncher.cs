@@ -102,5 +102,11 @@ namespace MyFirstARGame
 
             this.JoinedRoom?.Invoke(this);
         }
+
+        public override void OnLeftRoom()
+        {
+            Debug.Log("Left room");
+            this.isJoinedToRoom = false;
+        }
     }
 }

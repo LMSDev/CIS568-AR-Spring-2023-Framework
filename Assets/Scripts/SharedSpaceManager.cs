@@ -21,10 +21,16 @@ namespace MyFirstARGame
         [SerializeField]
         private GameObject hostOrigin;
 
+        [SerializeField]
+        private Material trackedImageMaterialPreSync;
+
+        [SerializeField]
+        private Material trackedImageMaterialPostSync;
+
         private List<ARTrackedImage> trackedImages;
         private GameObject networkedTrackedImage;
+        private bool hasFoundImageTarget;
         private bool hasFoundOrigin;
-        private float lastSyncTime;
 
         private GameObject arCamera;
 
@@ -69,15 +75,18 @@ namespace MyFirstARGame
                     // Our SharedSpaceImageLibrary only contains one image, so we do not have to filter anything here.
                     Debug.Log("Tracking image: " + trackedImg.referenceImage.name);
 
-                    // If we have not found our world origin yet, calculate based on the position of the image target.
-                    if (!this.hasFoundOrigin)
+                    // If we have not found our image target yet, show it to the user.
+                    if (!this.hasFoundImageTarget)
                     {
-                        // You could instantiate a GameObject at the exact location of the tracked image if you wanted to.
+                        // You can instantiate a GameObject at the exact location of the tracked image if you wanted to.
                         this.networkedTrackedImage = PhotonNetwork.Instantiate("TrackedImage", trackedImg.transform.position, trackedImg.transform.rotation);
 
-                        // Now adjust our world origin to the position of the tracked image.
-                        this.MatchReferenceCoordinateSystem(trackedImg.gameObject);
-                        this.hasFoundOrigin = true;
+                        // Now inform the user that the image has been found and that they can synchronize the world.
+                        // We also hook up an event to know when the user has pressed the image target, so we can
+                        // synchronize the coordinate systems.
+                        this.ShowOutline(true, true);
+                        this.networkedTrackedImage.GetComponent<TrackedImageController>().Pressed += this.TrackedImageController_Pressed;
+                        this.hasFoundImageTarget = true;
                     }
                     else
                     {
@@ -88,13 +97,9 @@ namespace MyFirstARGame
                         this.networkedTrackedImage.transform.localScale = new Vector3(trackedImg.size.x, 1f, trackedImg.size.y);
                         this.networkedTrackedImage.GetPhotonView().RPC("UpdateScale", RpcTarget.Others, this.networkedTrackedImage.transform.localScale);
 
-                        // We update our coordinate systems periodically if we are still tracking.
+                        // We also could choose to update our coordinate systems here periodically if we are still tracking.
                         // This allows us to compensate for potential drifting due to sensor inaccuracies.
-                        if (this.lastSyncTime + 1.0f < Time.time)
-                        {
-                            this.MatchReferenceCoordinateSystem(trackedImg.gameObject);
-                            this.lastSyncTime = Time.time;
-                        }
+                        // if (someTimeElapsed) -> MatchReferenceCoordinateSystem()
                     }
                 }
                 else
@@ -104,6 +109,15 @@ namespace MyFirstARGame
             }
 
             this.trackedImages = new List<ARTrackedImage>(addedAndUpdated);
+        }
+
+        private void TrackedImageController_Pressed(TrackedImageController sender, Vector3 position)
+        {
+            // The user pressed our image target. Sync up the coordinate systems and inform the user by rendering a green outline.
+            Debug.Log("Image target pressed.");
+            this.ShowOutline(true, false);
+            this.MatchReferenceCoordinateSystem(sender.gameObject);
+            this.hasFoundOrigin = true;
         }
 
         private void MatchReferenceCoordinateSystem(GameObject trackedImage)
@@ -135,6 +149,16 @@ namespace MyFirstARGame
             xrOrigin.transform.position += targetPosition - xrOrigin.Camera.transform.position;
         }
 
+        private void ShowOutline(bool show, bool preSync)
+        {
+            if (this.networkedTrackedImage != null)
+            {
+                var controller = this.networkedTrackedImage.GetComponent<TrackedImageController>();
+                controller.ShowOutline = show;
+                controller.OutlineMaterial = preSync ? this.trackedImageMaterialPreSync : this.trackedImageMaterialPostSync;
+            }
+        }
+
         private void Update()
         {
             // Update our camera position every frame.
@@ -147,22 +171,15 @@ namespace MyFirstARGame
 
         private void OnGUI()
         {
-            // Creating a simple GUI on the phone screen to we can debug the image target.
+            // Creating a simple GUI on the phone screen so we can debug the image target.
             GUIStyle style = new()
             {
                 fontSize = 30,
             };
 
-            if (this.hasFoundOrigin)
-            {
-                style.normal.textColor = Color.green;
-                GUI.Label(new Rect(0, Screen.height / 2 + 200, 100, 100), "Found image target!", style);
-            }
-            else
-            {
-                style.normal.textColor = Color.red;
-                GUI.Label(new Rect(0, Screen.height / 2 + 200, 100, 100), "Looking for image target...", style);
-            }
+            var text = this.hasFoundOrigin ? "Scanned image target" : this.hasFoundImageTarget ? "Found image target" : "Looking for image target";
+            style.normal.textColor = this.hasFoundOrigin ? Color.green : Color.red;
+            GUI.Label(new Rect(0, Screen.height / 2 + 200, 100, 100), text, style);
         }
     }
 }

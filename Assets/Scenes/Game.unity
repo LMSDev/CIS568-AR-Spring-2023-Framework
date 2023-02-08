@@ -2453,6 +2453,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   arTrackedImageManager: {fileID: 1513056496}
   hostOrigin: {fileID: 5630835430940671327}
+  trackedImageMaterialPreSync: {fileID: 2100000, guid: e7360144d7f619248821fe47d8acb152,
+    type: 2}
+  trackedImageMaterialPostSync: {fileID: 2100000, guid: 6e1fd3ab57cbad24898e46e66380a0ec,
+    type: 2}
 --- !u!114 &1513056498
 MonoBehaviour:
   m_ObjectHideFlags: 0
